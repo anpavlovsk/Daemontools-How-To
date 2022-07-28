@@ -120,3 +120,45 @@ root@ubuntu2004:/etc/service# svstat hello
 hello: down 405 seconds, normally up
 root@ubuntu2004:/etc/service#
 ````
+The preceding command tells you up to five pieces of information:
+
+1. The service dir name (I guess in case you forgot what you typed)
+2. The current state (either up or down)
+3. The PID (skipped if the service is down)
+4. The number of seconds it's been in its current state
+5. Its normal state (skipped unless its current state is different from its normal state)
+
+Check the results of svstat when you try to toggle its state with svc -u or svc -d.
+````
+root@ubuntu2004:/etc/service# svc -u hello
+root@ubuntu2004:/etc/service# svstat hello
+hello: up (pid 10804) 3 seconds
+````
+### Using Daemontools Logging
+
+Our hello service writes its own log to /tmp/junklog.log, but sometimes you're daemonizing someone else's code and don't want to modify it to write a log. Daemontools can write a timestamped line to a log file every time a daemonized program writes to stdout or stderr. Lets adds logging to the hello service. Do the following, logged in as user root:
+
+* cd /scratch/service/hello
+* mkdir log
+* cd log
+* mkdir main
+Create the following file, named run.new, in the log directory:
+````
+#!/bin/sh
+exec 2>&1
+exec multilog t ./main
+````
+* chmod u+x run.new
+* mv run.new run
+* cd /service
+* svc -t hello
+In another terminal that's visible, tail -fn0 /scratch/service/hello/main/current
+````
+root@ubuntu2004:~# tail -fn0 /scratch/service/hello/log/main/current
+@4000000062e2a5c5283f564c 20220728_15:05:31
+@4000000062e2a5c629021d94 20220728_15:05:32
+@4000000062e2a5c72eaa6f1c 20220728_15:05:33
+@4000000062e2a5c82f6a7b2c 20220728_15:05:34
+@4000000062e2a5c9346cc4cc 20220728_15:05:35
+
+````
