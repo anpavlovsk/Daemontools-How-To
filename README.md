@@ -8,6 +8,13 @@ With daemontools, if you want to write your own daemon, you can write it as a no
 
 Will'll make a shellscript that, once every second, writes the yyyymmdd:hhmmss time both to a file in the /tmp directory, and to stdout. This shellscript runs in the foreground and has no daemon-like properties. Then will'll call this shellscript, from a daemontools implementation, to make it into a daemon, controllable by the svc command, and observable with the svstat and svok commands. Will'll watch the file in the /tmp directory as you start and stop the daemon with the svc command.
 
+In this Hello, assume the following:
+
+Your username is root
+Your hostname is ubuntu2004
+The directory in which you assemble your services is /scratch/service, and that directory is owned and grouped root, and its permissions are 1755.
+Your shellscript is at /root/daemhello/print_timestamps.sh, and is owned by user root and is executable.
+
 ### Make and test the shellscript
 Make a directory directory called daemhello. Create the following shellscript, called print_timestamps.sh, in that newly created directory:
 ````
@@ -44,3 +51,24 @@ On a different terminal, perform a tail -fn0 /tmp/junklog.log, and you'll see th
 20220728_12:44:25
 
 ````
+### Build the daemontools Service
+
+Now lets build a daemontools service for the shellscript we just made. Do all this section's work logged in as root. Later we'll discuss daemontools running a daemon as a normal user, but the setup work should be done as user root, regardless of the user daemontools uses to run the program.
+
+As you remember from earlier, all service directory trees are built under the /scratch/service directory.
+
+* cd /scratch/service
+* mkdir hello
+* cd hello
+* Create file run, which contains:
+````
+#!/bin/sh
+echo Starting hello
+exec /root/daemhello/print_timestamps.sh
+````
+* chmod u+x run
+* ln -s /scratch/service/hello /etc/service/hello
+Note that the preceding command "installs" service hello and actually starts it running.
+* In another terminal, tail -fn0 /tmp/junklog.log
+Note that the preceding command tests whether /root/daemhello/print_timestamp.sh is running and writing to tail -fn0 /tmp/junklog.log. It's how you test whether the daemon is working.
+* Wait more than five seconds (and less than 12) for the tail command to produce output.
