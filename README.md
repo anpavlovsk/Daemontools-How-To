@@ -72,3 +72,51 @@ Note that the preceding command "installs" service hello and actually starts it 
 * In another terminal, tail -fn0 /tmp/junklog.log
 Note that the preceding command tests whether /root/daemhello/print_timestamp.sh is running and writing to tail -fn0 /tmp/junklog.log. It's how you test whether the daemon is working.
 * Wait more than five seconds (and less than 12) for the tail command to produce output.
+
+### Manipulate and Monitor Your New Service 
+
+You manipulate your service with the svc command. You monitor your service with commands svstat and svok. Let's dispense with svok right now: It outputs nothing, and simply returns 0 if the service is working properly, or non-zero otherwise. 
+
+The svc command is used to manipulate your daemon, by sending signals to it. This command is performed as user root, from within the /service directory. The following is an example:
+````
+svc -d hello
+````
+The preceding command downs (stops) the hello daemon. The following is a table of svc arguments, their meanings, and their signals:
+
+Arg	Action	Signal
+-u	Start (up)	-
+-d	Stop (down)	TERM, then CONT
+-t	Restart if running	TERM
+The preceding are the commands I use all the time. Many, many more arguments to the command are explained at http://cr.yp.to/daemontools/svc.html.
+
+With one terminal running a tail -f /tmp/junklog.log, use the three svc command previously listed and note their effect on the output. You can turn your daemon on and off at will.
+
+### Elementary Troubleshooting
+
+Here are some typical ps commands to see what's running and what's not:
+
+* ps ax | grep svscan : One instance each of svscanboot and svscan is perfect. Zero instances means daemontools isn't running. More than one of either causes hard to solve problems, so it must be fixed right away. If you have more than one, try rebooting and see if you still have more than one. If you do, svscanboot is probably being run from more than one place. The proper grep commands should shed some light. Be aware that the standard djb provided daemontools install writes a line to start svscanboot in /etc/inittab, so if you manually enabled it anywhere else, you must disable one or the other, in order to boot with exactly one instance of svscanboot and one instance of svscan
+
+* ps ax | grep supervise : This tells you all the services under daemontools supervision. If you don't see a supervise process for the service you're investigating, that tends to indicate a very basic failure in your service. investigate further
+ps ax | grep myprogram, where myprogram is the program being exec'ed by your run command. For instance, in previous examples, it was print_timestamps.sh. If the ps command reveals no instance of myprogram, it's also probable that svstat /service/myserviced keeps showing the service up for zero or one seconds. It keeps stopping and restarting. Here are some avenues to investigate when this happens:
+* The run failed to exec myprogram. This possibility can be confirmed by temporarily adding a first command of myprogram to append a timestamp to a chmod 777 file in the /tmp directory.
+* myprogram runs but either aborts or fails to loop.
+* Program myprogram was designed not to loop, depending on daemontools to restart it. This is a hideously defective design paradigm, and should be used only as a very temporary diagnostic, and then backed out immediately.
+* ps ax | grep readproctitle : Although this isn't done to determine existence of a process, reading its output can tell a lot about what happened when the run script tried to exec myprogram.
+* If you find yourself with no running svscanboot, you can run it as root from a terminal like this: csh -cf '/command/svscanboot &'
+
+It should also be noted that, if svscanboot isn't being started at boot, you can put the preceding command in /etc/rc.local on non-systemd machines.
+
+The next thing to do is use svstat and svc commands to investigate further. Perform the following command a few times, as user root, from the /service directory:
+````
+svstat hello
+````
+You’ll see an output similar below.
+````
+root@ubuntu2004:/etc/service# svc -d hello
+root@ubuntu2004:/etc/service# svstat hello
+hello: down 372 seconds, normally up
+root@ubuntu2004:/etc/service# svstat hello
+hello: down 405 seconds, normally up
+root@ubuntu2004:/etc/service#
+````
