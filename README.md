@@ -82,11 +82,12 @@ The svc command is used to manipulate your daemon, by sending signals to it. Thi
 svc -d hello
 ````
 The preceding command downs (stops) the hello daemon. The following is a table of svc arguments, their meanings, and their signals:
-
+```
 Arg	Action	Signal
 -u	Start (up)	-
 -d	Stop (down)	TERM, then CONT
 -t	Restart if running	TERM
+```
 The preceding are the commands I use all the time. Many, many more arguments to the command are explained at http://cr.yp.to/daemontools/svc.html.
 
 With one terminal running a tail -f /tmp/junklog.log, use the three svc command previously listed and note their effect on the output. You can turn your daemon on and off at will.
